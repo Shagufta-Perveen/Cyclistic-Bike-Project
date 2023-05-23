@@ -1,0 +1,252 @@
+---
+title: "Cyclistic Bike"
+author: "Shagufta"
+date: "2023-03-13"
+output: html_document
+---
+
+I have```{r setup, include=FALSE}
+knitr::opts_chunk$set( eval = TRUE, echo = TRUE, results = "hide")
+```
+## Table of Content
+
+#. ASK PHASE
+#. PREPARE PHASE
+#. PROCESS PHASE
+#. ANALYSE PHASE
+#. SHARE PHASE
+#. ACT PHASE
+
+## ASK PHASE
+
+**Identify the Business task**
+
+In this case it’s important to understand the problem and any questions about your Project on so that you’re focused on your stakeholders’ needs.The key business is to  find how casual riders and members riders use their bikes differently. Our main aim is to find marketing strategies to convert casual riders into annual members.Our insights will help the marketing team increase the annual members.
+
+## PREPARE PHASE
+
+The data is located in a kaggle dataset without bias.
+
+**Identify good data sources**
+
+The dataset ROCCCs as it is reliable, original, comprehensive, 
+current and cited.
+
+Reliable:the data is Structure and organize
+
+original:data provide by company
+
+comprehensive:Full year worth of data 
+
+current: March 2022 to February 2023
+
+cited:internal data provide by the Cyclistic Bike company
+
+**Loading the labraries**
+
+```{r}
+  library(readr)
+  library(readxl)
+  library(tibble)
+  library(ggplot2)
+  library(tidyr)
+  library(dplyr)
+  library(lubridate)
+  library(rmarkdown)
+```
+**Importing dataset**
+
+```{r}
+dt1 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202203-divvy-tripdata.csv")
+dt2 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202204-divvy-tripdata.csv")
+dt3 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202205-divvy-tripdata.csv")
+dt4 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202206-divvy-tripdata.csv")
+dt5 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202207-divvy-tripdata.csv")
+dt6 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202208-divvy-tripdata.csv")
+dt7 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202209-divvy-tripdata.csv")
+dt8 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202210-divvy-tripdata.csv")
+dt9 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202211-divvy-tripdata.csv")                
+dt10 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202212-divvy-tripdata.csv")
+dt11 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202301-divvy-tripdata.csv")
+dt12 <- read_csv("C:/Users/Buzz Tech/Desktop/project 2/202302-divvy-tripdata.csv")
+```
+##  PROCESS PHASE
+**Combining the uploaded file into One dataframe**
+
+```{r}
+full <- rbind(dt1,dt2,dt3,dt4,dt5,dt6,dt7,dt8,dt9,dt10,dt11,dt12)
+```
+**dataframe summary**
+```{r}
+summary(full)
+```
+**How many missing values in this datasets**
+```{r}
+sum(is.na(full))
+```
+**Dropping the missing values**
+```{r}
+full_clean <-na.omit(full)
+sum(is.na(full_clean))
+```
+**Create a column  “ride_length” in minutes** 
+
+Calculate the length of each ride by subtracting the
+column “started_at” from the column “ended_at” .
+```{r}
+full_clean <- full_clean %>% mutate(ride_length = as.numeric(ended_at - started_at) / 60)
+```
+
+**Create a column  “day_of_week”**
+
+
+calculate the day of the week that each ride started using the “WEEKDAY”. Format as General or as a number with no decimals, noting that 1 = Monday and 7 = Sunday.
+
+```{r}
+full_clean <- full_clean %>% mutate(day_of_week = paste(strftime(ended_at, "%u"), "-", strftime(ended_at, "%a")))
+unique(full_clean$day_of_week)
+```
+
+**Create the column to Separating year and month**
+```{r}
+full_clean <- full_clean %>% mutate(year_month = paste(strftime(started_at, "%Y"),
+                                             "-",strftime(started_at, "%m"),
+                                             paste("(",strftime(started_at, "%b"), ")", sep="")))
+unique(full_clean$year_month)
+```
+ **Create a column of ride hour**
+
+```{r}
+ full_clean$hour <- lubridate::hour(full_clean$ended_at)
+unique(full_clean$hour)
+```
+## ANALYZE PHASE
+
+In this case	Create effective data visualizations.
+
+```{r}
+summary(full_clean)
+```
+**comparing casuals vs number of annual members**
+
+
+
+```{r}
+full_clean %>% 
+  group_by(member_casual) %>% summarise(count = length(ride_id),
+            'Percentage' = (length(ride_id) / nrow(full_clean)) * 100)
+```
+
+```{r}
+aggregate(full_clean$ride_length/60 ~ full_clean$member_casual, FUN = mean)
+```
+
+**plot number of casuals vs annuals**
+
+```{r}
+ggplot(full_clean, aes(member_casual, fill=member_casual)) + geom_bar() +
+  labs(x="Casuals vs Annual Members", title="Casuals vs Members Distribution")
+```
+
+**Monthly Distribution**
+
+```{r}
+full_clean %>%
+  group_by(year_month) %>%
+  summarise(count = length(ride_id),
+            'Percentage' = (length(ride_id) / nrow(full_clean)) * 100,
+            'members' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            '% Difference' = members - casual)
+```
+
+```{r}
+full_clean%>%
+  ggplot(aes(year_month, fill=member_casual)) +
+  geom_bar() +
+  labs(x="Month", title="Distribution by month")+coord_flip()
+```
+
+This graph shows that We have more members than riders in every month.There are more riders in 2022.
+July has the biggest number of data points.
+
+**Distribution the day of week**
+```{r}
+full_clean %>%
+  group_by(day_of_week) %>% 
+  summarise(count = length(ride_id),
+            '%' = (length(ride_id) / nrow(full_clean)) * 100,
+            'members' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            '% Difference' = members - casual)
+```
+ 
+```{r}
+full_clean %>%
+  group_by(member_casual, day_of_week) %>%
+  summarise(count = length(ride_id),
+            average_duration = mean(ride_length/60)) %>%
+  arrange(member_casual,day_of_week) %>%
+  ggplot(aes(x =day_of_week, y = average_duration, fill = member_casual))+
+  geom_col(position = "dodge")
+``` 
+
+
+```{r}
+ggplot(full_clean, aes(day_of_week, fill=member_casual)) +
+  geom_bar() +
+  labs(x="day_of_week", title="Distribution by day of week") +
+  coord_flip()
+```
+
+ This graph shows that the highest volume of riders is on weekends.
+ 
+**Hourly Distribution of the day**
+```{r}
+full_clean %>%
+  group_by(hour) %>% 
+  summarise(count = length(ride_id),
+            '%' = (length(ride_id) / nrow(full_clean)) * 100,
+            'members' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            '% Difference' = members - casual)
+```
+
+
+```{r}
+full_clean %>%
+  ggplot(aes(hour, fill=member_casual,color=member_casual)) +
+  labs(x="Hour of the day", title="Hourly Distribution of the day") +geom_bar()
+```
+
+ This graph shows that there are more bikers in the afternoon. There are more members in the morning from 5 am to 11 am. There are more casuals in the afternoon from 11 pm to 4 am.
+
+**Type of Rideable bikes**
+
+```{r}
+full_clean %>%
+  group_by(rideable_type) %>% 
+  summarise(count = length(ride_id),
+            '%' = (length(ride_id) / nrow(full_clean)) * 100,
+            'members' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            '% Difference' = members - casual)
+```
+
+
+```{r}
+ggplot(full_clean, aes(rideable_type, fill=member_casual)) +
+  labs(x="Rideable type", title="Distribution of types of bikes") + geom_bar() +   coord_flip()
+```
+
+This graph shows that riders prefer the classic and electric bikes.
+
+## SHARE PHASE
+
+**Conclusion**
+
+Members have the biggest proportion of the dataset than casuals.July recorded the biggest count of data points Bikes are used as an recreational activity on weekends. Members use bikes for daily activities like going to work.Weekends have highest number of riders.There are more riders in the afternoon.
+
+## ACT PHASE
+ These insights for increasing the number of members and converting casuals to annual members.
+
